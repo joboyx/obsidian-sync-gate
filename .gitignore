@@ -16,3 +16,9 @@ data.json
 
 # macOS
 .DS_Store
+
+# Keep these even when a global ignore file drops them.
+!AGENTS.md
+!CLAUDE.md
+!.agents/
+!.claude/
