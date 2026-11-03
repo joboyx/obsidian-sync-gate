@@ -152,12 +152,16 @@ export type GateCoverage = { kind: 'all-notes' } | { kind: 'single-note'; notePa
  * - When Sync is paused, or its state cannot be read, editing stays open with a banner.
  *   A vault lock that arrives or ends in that time waits, and starts on the first readable,
  *   unpaused state. When paused Sync runs again, the gate locks as on a reconnect.
- * - "Edit anyway" always ends the current lock.
+ * - "Edit anyway" always ends the current lock. While Sync is paused, it also cancels
+ *   the lock for the end of that pause. A lock trigger after it still locks.
  */
 export class Gate {
 	private scope: LockScope = 'none';
 	private notePath: string | undefined = undefined;
 	private pendingLock: LockReason | undefined = undefined;
+	// True after "Edit anyway" while Sync is paused. Stops the lock that the end of
+	// the pause would start, until Sync runs again once.
+	private pauseLockDismissed = false;
 	private lockReason: GateReason = 'idle';
 	private openReason: GateReason = 'idle';
 	private syncState: SyncState | undefined = undefined;
@@ -227,6 +231,7 @@ export class Gate {
 				break;
 			case 'edit-anyway':
 				this.pendingLock = undefined;
+				this.pauseLockDismissed = this.syncState === 'paused';
 				this.release('edit-anyway');
 				break;
 		}
@@ -258,6 +263,7 @@ export class Gate {
 			this.holdLock(snapshot.state);
 			return;
 		}
+		this.pauseLockDismissed = false;
 		if (this.openReason === 'paused' || this.openReason === 'unavailable') {
 			this.openReason = 'idle';
 		}
@@ -292,7 +298,7 @@ export class Gate {
 		if (this.scope === 'vault' && isLockReason(this.lockReason)) {
 			this.pendingLock = this.lockReason;
 		}
-		if (state === 'paused') {
+		if (state === 'paused' && !this.pauseLockDismissed) {
 			// Changes from other devices collect while Sync is paused. Lock when it runs again.
 			this.pendingLock ??= 'reconnect';
 		}

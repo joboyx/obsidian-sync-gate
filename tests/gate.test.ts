@@ -293,7 +293,21 @@ describe('Gate', () => {
 		['locks after paused, then unreadable, then running', [snapshot('paused', 0), snapshot('unavailable', 1), snapshot('synced', 2)], vault('reconnect')],
 		['with no network, stays open with the offline banner', [snapshot('paused', 0, {}, false), networkDown(1)], OFFLINE],
 		['with no network, the network return locks', [snapshot('paused', 0, {}, false), networkDown(1), snapshot('checking', 2)], vault('reconnect')],
-		['edit anyway while paused cancels the lock', [snapshot('paused', 0), editAnyway(), snapshot('synced', 1)], open('edit-anyway')],
+		[
+			'edit anyway while paused cancels the lock, also after more paused snapshots',
+			[snapshot('paused', 0), editAnyway(), snapshot('paused', 1), snapshot('synced', 2)],
+			open('edit-anyway'),
+		],
+		[
+			'a resume after edit anyway while paused still locks',
+			[snapshot('paused', 0), editAnyway(), snapshot('paused', 1), trigger('resume', 2), snapshot('paused', 3), snapshot('synced', 4)],
+			vault('resume'),
+		],
+		[
+			'a new pause after Sync ran again locks when Sync runs again',
+			[snapshot('paused', 0), editAnyway(), snapshot('synced', 1), snapshot('paused', 2), snapshot('synced', 3)],
+			vault('reconnect'),
+		],
 	]);
 
 	cases('Edit anyway is always available', [
