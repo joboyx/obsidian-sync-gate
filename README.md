@@ -26,7 +26,7 @@ A lock also ends when Sync stays "Fully synced" with no activity for 15 seconds.
 
 On a phone or tablet, a short loss of focus, for example the notification shade or a system dialog, is not a resume. Only a return from the background, or a loss of focus for 3 seconds or more, locks.
 
-When you pause Sync, Sync Gate does not lock. It shows a banner, because changes from other devices do not arrive while Sync is paused. When Sync runs again, Sync Gate locks all notes, as in R6. When Sync reports an error, the lock stays on. Wait for Sync, or select **Edit anyway**.
+When you pause Sync, Sync Gate does not lock. It shows a banner, because changes from other devices do not arrive while Sync is paused. When Sync runs again, Sync Gate locks all notes, as in R6. If you select **Edit anyway** while Sync is paused, this lock does not occur. When Sync reports an error, the lock stays on. Wait for Sync, or select **Edit anyway**. An error while Sync has no server connection counts as offline. See [Offline](#offline).
 
 If Sync Gate cannot read the Sync state, for example after an app update changes the internal API, it does not lock. It shows a warning banner instead. A lock that starts in that time, for example at app start, waits and starts when Sync Gate can read the Sync state again.
 

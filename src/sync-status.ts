@@ -228,14 +228,17 @@ function mapSnapshot(sync: unknown): SyncSnapshot {
 	if (status === 'disconnected' || DISCONNECTED_TEXT.test(message)) {
 		return snapshot('disconnected');
 	}
+	const server = member(sync, 'server');
+	const hasConnection = member(server, 'hasConnection');
+	const noConnection = typeof hasConnection === 'function' && !(hasConnection as () => unknown).call(server);
 	if (status === 'error' || member(sync, 'error') === true) {
-		return snapshot('error');
+		// An error with no server connection is a disconnect, for the same reason as above.
+		return snapshot(noConnection ? 'disconnected' : 'error');
 	}
 	if (status === 'uninitialized') {
 		return snapshot('checking');
 	}
-	const hasConnection = member(member(sync, 'server'), 'hasConnection');
-	if (typeof hasConnection === 'function' && !(hasConnection as () => unknown).call(member(sync, 'server'))) {
+	if (noConnection) {
 		return snapshot('disconnected');
 	}
 	if (status === 'syncing' || syncing === true) {
