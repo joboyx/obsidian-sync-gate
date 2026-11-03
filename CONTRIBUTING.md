@@ -30,6 +30,8 @@ npm ci
 | `src/gate.ts`           | Lock rules as a state machine. No app API, no timers.                   |
 | `src/gate-view.ts`      | Maps the gate state to the icons and text that the UI shows.            |
 | `src/editor-lock.ts`    | Applies the gate state to open notes: Reading view, lock card, banner, state indicator. |
+| `src/mode-memory.ts`    | Remembers the mode of each note before a lock, for the restore after it. |
+| `src/resume-detector.ts` | Decides which window focus events count as a resume on mobile.        |
 | `src/sync-status.ts`    | Reads the internal Sync state. Checks every member and never throws.    |
 | `src/log-entry.ts`      | Classifies Sync log messages by direction and file path.                |
 | `src/diagnostics.ts`    | Ring buffer of gate inputs and decisions for the diagnostic log.        |
@@ -68,10 +70,12 @@ To see lock decisions, turn on **Debug logging** in the plugin settings and open
 
 Maintainers only.
 
-1. Update `CHANGELOG.md`: move the `Unreleased` entries under the new version.
+1. Update `CHANGELOG.md`: move the `Unreleased` entries under a heading for the new version, for example `## [0.2.0] - 2025-01-31`, and add the link for that version at the end of the file.
 2. Run `npm version <major|minor|patch>`. This updates `manifest.json` and `versions.json` and creates a tag without a `v` prefix.
 3. Push the commit and the tag: `git push --follow-tags`.
 4. The release workflow builds the plugin and creates a draft GitHub release with `main.js`, `manifest.json` and `styles.css`.
 5. Check the draft release, add the release notes and publish it.
 
 The workflow fails if the tag does not match the version in `manifest.json`.
+
+The first release is different: `manifest.json` and `versions.json` already have version `0.1.0`. Do step 1 for `0.1.0` and commit it. Do not run `npm version`. Tag the commit and push the tag: `git tag 0.1.0 && git push origin main 0.1.0`. Then continue with step 4.

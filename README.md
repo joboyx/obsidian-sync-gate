@@ -15,7 +15,7 @@ Sync Gate reads the state of the core Sync plugin and its activity log. It locks
 | Rule | When                                                | What Sync Gate does                                                                                                         |
 | ---- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | R1   | The app opens, or a phone or tablet app comes back from the background | Locks all notes. Unlocks on a new "Fully synced": Sync must show another state first, or log a new "Fully synced" entry. |
-| R2   | A change from another device arrives for the open note | Locks only that note until the download ends.                                                                            |
+| R2   | A change from another device arrives for an open note | Locks only that note until the download ends.                                                                             |
 | R3   | A change arrives for a different note               | Does not lock.                                                                                                              |
 | R4   | This device uploads a change                        | Does not lock.                                                                                                              |
 | R5   | The device is offline                               | Does not lock. Shows an offline banner. See [Offline](#offline).                                                            |
@@ -24,9 +24,11 @@ Sync Gate reads the state of the core Sync plugin and its activity log. It locks
 
 A lock also ends when Sync stays "Fully synced" with no activity for 15 seconds. Sync does not always start a new round after the app opens, and this rule prevents a lock that never ends.
 
-When you pause Sync, Sync Gate does not lock. It shows a banner, because changes from other devices do not arrive while Sync is paused. When Sync reports an error, the lock stays on. Wait for Sync, or select **Edit anyway**.
+On a phone or tablet, a short loss of focus, for example the notification shade or a system dialog, is not a resume. Only a return from the background, or a loss of focus for 3 seconds or more, locks.
 
-If Sync Gate cannot read the Sync state, for example after an app update changes the internal API, it does not lock. It shows a warning banner instead.
+When you pause Sync, Sync Gate does not lock. It shows a banner, because changes from other devices do not arrive while Sync is paused. When Sync runs again, Sync Gate locks all notes, as in R6. When Sync reports an error, the lock stays on. Wait for Sync, or select **Edit anyway**.
+
+If Sync Gate cannot read the Sync state, for example after an app update changes the internal API, it does not lock. It shows a warning banner instead. A lock that starts in that time, for example at app start, waits and starts when Sync Gate can read the Sync state again.
 
 ### Offline
 
@@ -74,7 +76,7 @@ Install the plugin on every device that edits the vault.
 | Setting                       | Default   | Description                                                                 |
 | ----------------------------- | --------- | --------------------------------------------------------------------------- |
 | Protected notes               | All notes | Lock every note, or only one note that you edit on more than one device.    |
-| Note path                     | (empty)   | Vault-relative path of the protected note, when you protect one note only.  |
+| Note path                     | (empty)   | Vault-relative path of the protected note, when you protect one note only. When you rename or move the note, the path changes with it. |
 | Lock on resume on mobile only | On        | When on, only phones and tablets lock when the app comes back from the background. Desktop Sync keeps running in the background, so desktop locks at startup, on reconnect and for incoming changes to the open note. |
 | Slow sync after (seconds)     | 20        | Time without Sync progress before "Edit anyway" becomes prominent.          |
 | Unlock when sync is quiet (seconds) | 15  | Time that Sync must stay up to date, with no activity, before a lock ends on its own. |
