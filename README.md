@@ -1,24 +1,35 @@
-# Sync Gate
+<p align="center">
+  <img src="docs/images/icon.png" alt="Sync Gate icon: a purple padlock whose shackle is a curved arrow that turns over the top and points back down into the lock body" width="128">
+</p>
 
-Sync Gate is a community plugin for [Obsidian](https://obsidian.md). It blocks editing of notes while Obsidian Sync still brings in changes from your other devices. A quick edit on your phone then cannot conflict with newer text from your laptop.
+<h1 align="center">Sync Gate</h1>
+
+<p align="center">An Obsidian plugin that blocks note editing until Obsidian Sync has brought in the changes from your other devices.</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://obsidian.md"><img src="https://img.shields.io/badge/Obsidian-plugin-7c3aed.svg" alt="Obsidian plugin"></a>
+  <a href="https://github.com/joboyx/obsidian-sync-gate/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/joboyx/obsidian-sync-gate/ci.yml?branch=main&amp;label=CI" alt="CI status"></a>
+  <a href="https://github.com/joboyx/obsidian-sync-gate/releases/latest"><img src="https://img.shields.io/github/v/release/joboyx/obsidian-sync-gate" alt="Latest release"></a>
+</p>
+
+![A locked note, "Weekly plan", on desktop. A dimmed layer covers the note. A card in the center shows a sync icon, the title "Waiting for Sync", the text "Getting changes from your other devices. Editing opens when Sync finishes." and an "Edit anyway" button. The status bar shows a lock icon and "Locked".](docs/images/desktop-locked.png)
+
+Sync Gate blocks editing of notes while Obsidian Sync still brings in changes from your other devices. A quick edit on your phone then cannot conflict with newer text from your laptop.
 
 > **Status: early development.** The lock rules, the Sync status reader and the editor lock are in place. Test the plugin on your devices before you rely on it.
 
 ## Screenshots
 
-Illustrations of the plugin UI in the default dark theme.
+The images are illustrations of the plugin UI in the default dark theme, with a made-up demo vault. The image at the top shows a locked note on desktop: the lock card covers the note, and the status bar shows "Locked".
 
-![A locked note on desktop. A card with the title "Waiting for Sync" and an "Edit anyway" button covers the note. The status bar shows a lock icon and "Locked".](docs/images/desktop-locked.png)
+When editing is open, the status bar shows only a check mark icon.
 
-A locked note on desktop: the lock card covers the note, and the status bar shows "Locked".
-
-![The bottom of a desktop window. The status bar shows the word count and a check mark icon.](docs/images/desktop-open.png)
-
-Editing is open: the status bar shows only a check mark icon.
-
-![Three phones. Left: a muted check mark icon in the note header. Middle: an accent lock icon in the header and the "Waiting for Sync" lock card. Right: an orange "no Wi-Fi" icon in the header and the offline banner at the top of the note.](docs/images/mobile-states.png)
+![The bottom of a desktop window with the note "Weekly plan" open for editing and the text cursor after "Book a haircut". The status bar shows "0 backlinks", "40 words 205 characters" and a check mark icon with no label.](docs/images/desktop-open.png)
 
 On a phone, the status icon in the note header shows the gate state: editing open, locked, or offline with the offline banner.
+
+![Three phones with the note "Shopping list" open. Left, "Editing open": a muted check mark icon in the note header and the text cursor in the note. Middle, "Locked": a purple lock icon in the header, the note dimmed, and the "Waiting for Sync" lock card with an "Edit anyway" button. Right, "Offline": an orange "no Wi-Fi" icon in the header and the banner "You are offline. You can edit. Sync sends your changes when the connection returns." at the top of the note.](docs/images/mobile-states.png)
 
 ## Why
 
@@ -78,6 +89,12 @@ All elements use the colors, fonts and icons of your theme.
 | Unlock editing until next sync check  | Ends the current lock, the same as **Edit anyway**. The next startup, resume, reconnect or incoming change locks again. |
 | Save diagnostic log                   | Only when **Debug logging** is on. Saves the last 500 gate inputs and decisions as a note in the folder `Sync Gate diagnostics`. The log holds states and member names only, no note names or note text. |
 
+## Requirements
+
+- Obsidian 1.5.0 or later.
+- Desktop (Windows, macOS, Linux) or mobile (iOS, Android).
+- Obsidian Sync turned on for the vault. Without Sync, Sync Gate does not lock and shows a warning banner.
+
 ## Install
 
 ### With BRAT
@@ -120,7 +137,7 @@ All times must be whole numbers greater than 0.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). To report a security problem, see [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). To report a security problem, see [SECURITY.md](SECURITY.md). Coding agents start at [AGENTS.md](AGENTS.md).
 
 ## Credits
 
@@ -128,4 +145,4 @@ The Sync status mapping is adapted from [sync-reminder](https://github.com/HEIXI
 
 ## License
 
-[MIT](LICENSE)
+MIT. See [LICENSE](LICENSE).

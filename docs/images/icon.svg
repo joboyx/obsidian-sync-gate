@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Keyhole cut out of the lock body -->
+    <mask id="keyhole">
+      <rect width="1024" height="1024" fill="#fff"/>
+      <circle cx="512" cy="626" r="50" fill="#000"/>
+      <rect x="488" y="640" width="48" height="112" rx="24" fill="#000"/>
+    </mask>
+  </defs>
+
+  <!-- Shackle drawn as a sync arrow: it rises from the body, turns over the top and points back down into the body -->
+  <path d="M372 520 V360 A140 140 0 0 1 652 360 V380" stroke="#7c3aed" stroke-width="68" stroke-linecap="round" fill="none"/>
+  <path d="M570 372 L734 372 L652 456 Z" fill="#7c3aed" stroke="#7c3aed" stroke-width="24" stroke-linejoin="round"/>
+
+  <!-- Lock body -->
+  <rect x="262" y="486" width="500" height="372" rx="76" fill="#7c3aed" mask="url(#keyhole)"/>
+</svg>
