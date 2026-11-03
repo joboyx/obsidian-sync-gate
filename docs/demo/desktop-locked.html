@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Sync Gate: desktop, locked</title>
+	<link rel="stylesheet" href="../../styles.css">
+	<link rel="stylesheet" href="demo.css">
+	<style>
+		body {
+			width: 1200px;
+			height: 700px;
+			padding: 24px;
+		}
+
+		.window {
+			height: 652px;
+		}
+	</style>
+</head>
+<body>
+	<!-- Lucide icons (ISC License), inlined so the page renders without network access. -->
+	<svg width="0" height="0" style="position: absolute">
+		<symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+		<symbol id="i-refresh-cw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+		<symbol id="i-panel-left" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+		<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+		<symbol id="i-more-horizontal" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+		<symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+		<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+		<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+		<symbol id="i-bookmark" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+		<symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+		<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+	</svg>
+
+	<div class="window">
+		<div class="titlebar">
+			<div class="dots"><span></span><span></span><span></span></div>
+			<svg class="icon"><use href="#i-panel-left"/></svg>
+			<div class="tab">Weekly plan</div>
+			<div class="tab inactive">Shopping list</div>
+			<svg class="icon"><use href="#i-plus"/></svg>
+		</div>
+
+		<div class="ribbon">
+			<svg class="icon"><use href="#i-search"/></svg>
+			<svg class="icon"><use href="#i-bookmark"/></svg>
+			<svg class="icon"><use href="#i-book-open"/></svg>
+		</div>
+
+		<div class="sidebar">
+			<div class="heading">Demo vault</div>
+			<div class="file">Ideas</div>
+			<div class="file">Recipes</div>
+			<div class="file">Shopping list</div>
+			<div class="file active">Weekly plan</div>
+		</div>
+
+		<div class="main">
+			<div class="view-header">
+				<svg class="icon"><use href="#i-arrow-left"/></svg>
+				<svg class="icon"><use href="#i-arrow-right"/></svg>
+				<div class="title">Weekly plan</div>
+				<div class="view-actions">
+					<svg class="icon"><use href="#i-pencil"/></svg>
+					<svg class="icon"><use href="#i-more-horizontal"/></svg>
+				</div>
+			</div>
+
+			<!-- The lock card markup follows the plugin: .sync-gate-host > .sync-gate-overlay > .sync-gate-card. -->
+			<div class="view-content sync-gate-host">
+				<div class="note">
+					<h1>Weekly plan</h1>
+					<h2>Monday</h2>
+					<ul>
+						<li>Water the plants</li>
+						<li>Return the library books</li>
+					</ul>
+					<h2>Tuesday</h2>
+					<ul>
+						<li>Gym at 18:00</li>
+						<li>Call the bike shop about the brakes</li>
+					</ul>
+					<h2>Wednesday</h2>
+					<ul>
+						<li>Cook lunch for the rest of the week</li>
+						<li>Pay the electricity bill</li>
+					</ul>
+					<h2>Thursday</h2>
+					<ul>
+						<li>Book a haircut</li>
+					</ul>
+				</div>
+				<div class="sync-gate-overlay">
+					<div class="sync-gate-card" role="status">
+						<div class="sync-gate-card-icon"><svg><use href="#i-refresh-cw"/></svg></div>
+						<div class="sync-gate-card-title">Waiting for Sync</div>
+						<div class="sync-gate-card-text">Getting changes from your other devices. Editing opens when Sync finishes.</div>
+						<button>Edit anyway</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="status-bar">
+				<span>0 backlinks</span>
+				<span>38 words 196 characters</span>
+				<span class="sync-gate-status">
+					<span class="sync-gate-status-icon"><svg><use href="#i-lock"/></svg></span>
+					<span class="sync-gate-status-label">Locked</span>
+				</span>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

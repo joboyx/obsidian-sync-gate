@@ -4,6 +4,22 @@ Sync Gate is a community plugin for [Obsidian](https://obsidian.md). It blocks e
 
 > **Status: early development.** The lock rules, the Sync status reader and the editor lock are in place. Test the plugin on your devices before you rely on it.
 
+## Screenshots
+
+Illustrations of the plugin UI in the default dark theme.
+
+![A locked note on desktop. A card with the title "Waiting for Sync" and an "Edit anyway" button covers the note. The status bar shows a lock icon and "Locked".](docs/images/desktop-locked.png)
+
+A locked note on desktop: the lock card covers the note, and the status bar shows "Locked".
+
+![The bottom of a desktop window. The status bar shows the word count and a check mark icon.](docs/images/desktop-open.png)
+
+Editing is open: the status bar shows only a check mark icon.
+
+![Three phones. Left: a muted check mark icon in the note header. Middle: an accent lock icon in the header and the "Waiting for Sync" lock card. Right: an orange "no Wi-Fi" icon in the header and the offline banner at the top of the note.](docs/images/mobile-states.png)
+
+On a phone, the status icon in the note header shows the gate state: editing open, locked, or offline with the offline banner.
+
 ## Why
 
 Obsidian Sync needs a few seconds to pull in changes after the app opens or comes back from the background. If you type during that time, Sync must merge two versions of the same note. The merge can duplicate or lose text. Sync Gate makes you wait until Sync confirms that your vault is up to date.

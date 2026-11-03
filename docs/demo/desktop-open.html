@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Sync Gate: desktop, editing open</title>
+	<link rel="stylesheet" href="../../styles.css">
+	<link rel="stylesheet" href="demo.css">
+	<style>
+		body {
+			width: 1200px;
+			height: 260px;
+			padding: 0 24px 24px;
+		}
+
+		/* Only the bottom part of the window shows. */
+		.window {
+			grid-template-rows: 1fr;
+			height: 236px;
+			border-top: 0;
+			border-top-left-radius: 0;
+			border-top-right-radius: 0;
+		}
+
+		.view-content .note {
+			padding-top: 6px;
+		}
+	</style>
+</head>
+<body>
+	<!-- Lucide icons (ISC License), inlined so the page renders without network access. -->
+	<svg width="0" height="0" style="position: absolute">
+		<symbol id="i-check-circle-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+		<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+		<symbol id="i-bookmark" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+		<symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+	</svg>
+
+	<div class="window">
+		<div class="ribbon">
+			<svg class="icon"><use href="#i-search"/></svg>
+			<svg class="icon"><use href="#i-bookmark"/></svg>
+			<svg class="icon"><use href="#i-book-open"/></svg>
+		</div>
+
+		<div class="sidebar">
+			<div class="file">Shopping list</div>
+			<div class="file active">Weekly plan</div>
+		</div>
+
+		<div class="main">
+			<div class="view-content">
+				<div class="note">
+					<h2>Wednesday</h2>
+					<ul>
+						<li>Cook lunch for the rest of the week</li>
+						<li>Pay the electricity bill</li>
+					</ul>
+					<h2>Thursday</h2>
+					<ul>
+						<li>Book a haircut<span class="caret"></span></li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="status-bar">
+				<span>0 backlinks</span>
+				<span>40 words 205 characters</span>
+				<span class="sync-gate-status" aria-label="Sync Gate: editing open">
+					<span class="sync-gate-status-icon"><svg><use href="#i-check-circle-2"/></svg></span>
+					<span class="sync-gate-status-label sync-gate-hidden"></span>
+				</span>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
