@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-First public test release, 0.1.0, through BRAT.
+## [0.1.0] - 2026-11-03
+
+First public test release, through BRAT.
 
 ### Added
 
@@ -22,4 +24,5 @@ First public test release, 0.1.0, through BRAT.
 - Settings for protected notes, lock on resume (on mobile only by default), slow-sync time, quiet unlock time, connect grace time and debug logging. The protected note setting follows a rename of the note.
 - Commands "Show gate status", "Unlock editing until next sync check" and, with debug logging on, "Save diagnostic log".
 
-[Unreleased]: https://github.com/joboyx/obsidian-sync-gate/commits/main
+[Unreleased]: https://github.com/joboyx/obsidian-sync-gate/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/joboyx/obsidian-sync-gate/releases/tag/0.1.0
