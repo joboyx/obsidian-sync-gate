@@ -1,58 +1,6 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import type { GateCoverage } from './gate';
 import type SyncGatePlugin from './main';
-
-/**
- * Which notes Sync Gate protects.
- *
- * - `all-notes`: every note in the vault.
- * - `single-note`: only the note at `notePath`.
- */
-export type ProtectedScope = 'all-notes' | 'single-note';
-
-/**
- * Settings that the plugin stores in its data file.
- */
-export interface SyncGateSettings {
-	/**
-	 * Which notes Sync Gate protects.
-	 */
-	scope: ProtectedScope;
-	/**
-	 * Vault-relative path of the protected note when `scope` is `single-note`.
-	 */
-	notePath: string;
-	/**
-	 * When true, only mobile devices lock when the app comes back from the background.
-	 */
-	lockOnResumeMobileOnly: boolean;
-	/**
-	 * Seconds without Sync progress before "Edit anyway" becomes prominent.
-	 */
-	slowAfterSeconds: number;
-	/**
-	 * When true, the plugin writes its lock decisions to the developer console.
-	 */
-	debug: boolean;
-}
-
-/**
- * Default settings for a new install.
- */
-export const DEFAULT_SETTINGS: SyncGateSettings = {
-	scope: 'all-notes',
-	notePath: '',
-	lockOnResumeMobileOnly: false,
-	slowAfterSeconds: 20,
-	debug: false,
-};
-
-/**
- * Converts the settings to the note coverage that the gate uses.
- */
-export function toGateCoverage(settings: SyncGateSettings): GateCoverage {
-	return settings.scope === 'single-note' ? { kind: 'single-note', notePath: settings.notePath } : { kind: 'all-notes' };
-}
+import { DEFAULT_SETTINGS, parsePositiveInteger, type SecondsSetting } from './settings-model';
 
 /**
  * Settings tab for Sync Gate.
@@ -112,7 +60,9 @@ export class SyncGateSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Lock on resume on mobile only')
-			.setDesc('Lock when the app comes back from the background only on phones and tablets.')
+			.setDesc(
+				'Lock when the app comes back from the background only on phones and tablets. Desktop still locks at startup, when the network returns and when a change for the open note arrives.',
+			)
 			.addToggle((toggle) =>
 				toggle.setValue(settings.lockOnResumeMobileOnly).onChange(async (value) => {
 					settings.lockOnResumeMobileOnly = value;
@@ -120,30 +70,49 @@ export class SyncGateSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		new Setting(containerEl)
-			.setName('Slow sync after (seconds)')
-			.setDesc('Time without sync progress before the button to override the lock becomes prominent.')
-			.addText((text) =>
-				text
-					.setPlaceholder(String(DEFAULT_SETTINGS.slowAfterSeconds))
-					.setValue(String(settings.slowAfterSeconds))
-					.onChange(async (value) => {
-						const seconds = Number.parseInt(value, 10);
-						if (Number.isFinite(seconds) && seconds > 0) {
-							settings.slowAfterSeconds = seconds;
-							await this.plugin.saveSettings();
-						}
-					}),
-			);
+		this.addSecondsSetting(
+			'slowAfterSeconds',
+			'Slow sync after (seconds)',
+			'Time without sync progress before the button to override the lock becomes prominent.',
+		);
+		this.addSecondsSetting(
+			'quietUnlockSeconds',
+			'Unlock when sync is quiet (seconds)',
+			'Time that sync must stay up to date, with no activity, before the lock ends on its own.',
+		);
+		this.addSecondsSetting(
+			'connectGraceSeconds',
+			'Wait for connection (seconds)',
+			'Time that the lock waits for the sync server while the network is up. After this time, editing opens with an offline notice.',
+		);
 
 		new Setting(containerEl)
 			.setName('Debug logging')
-			.setDesc('Write lock decisions to the developer console.')
+			.setDesc('Write lock decisions to the developer console and keep a diagnostic log that you can save to a note.')
 			.addToggle((toggle) =>
 				toggle.setValue(settings.debug).onChange(async (value) => {
 					settings.debug = value;
 					await this.plugin.saveSettings();
 				}),
+			);
+	}
+
+	private addSecondsSetting(key: SecondsSetting, name: string, description: string): void {
+		const settings = this.plugin.settings;
+		new Setting(this.containerEl)
+			.setName(name)
+			.setDesc(description)
+			.addText((text) =>
+				text
+					.setPlaceholder(String(DEFAULT_SETTINGS[key]))
+					.setValue(String(settings[key]))
+					.onChange(async (value) => {
+						const seconds = parsePositiveInteger(value);
+						if (seconds !== undefined) {
+							settings[key] = seconds;
+							await this.plugin.saveSettings();
+						}
+					}),
 			);
 	}
 }
