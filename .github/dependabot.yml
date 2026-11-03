@@ -10,6 +10,12 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # Major versions of the toolchain need a coordinated upgrade of the lint plugins.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
