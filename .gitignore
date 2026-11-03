@@ -1,0 +1,18 @@
+# Editors
+.vscode
+.idea
+*.iml
+
+# npm
+node_modules
+
+# Build output. main.js is attached to GitHub releases, not committed.
+main.js
+*.map
+coverage
+
+# Plugin settings written by the app in a dev vault
+data.json
+
+# macOS
+.DS_Store

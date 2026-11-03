@@ -1,0 +1,13 @@
+/* Sync Gate styles. Use theme variables so the plugin follows the active theme. */
+
+.sync-gate-banner {
+	padding: var(--size-4-1) var(--size-4-2);
+	border-radius: var(--radius-s);
+	background-color: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.sync-gate-banner.is-warning {
+	color: var(--text-warning);
+}
