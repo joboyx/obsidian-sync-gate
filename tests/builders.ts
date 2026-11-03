@@ -24,13 +24,21 @@ export function trigger(reason: LockReason, at: number): GateEvent {
 
 /**
  * Builds a log-entry event from the message text, in the `{ info }` shape that Sync uses.
+ * `open` is the path of the one open note, or the paths of all open notes.
  */
-export function log(info: string, at: number, openPath?: string): GateEvent {
+export function log(info: string, at: number, open?: string | readonly string[]): GateEvent {
 	const event: GateEvent = { type: 'log-entry', entry: { info }, at };
-	if (openPath !== undefined) {
-		event.openPath = openPath;
+	if (open !== undefined) {
+		event.openPaths = typeof open === 'string' ? [open] : open;
 	}
 	return event;
+}
+
+/**
+ * Builds a rename event.
+ */
+export function rename(from: string, to: string): GateEvent {
+	return { type: 'rename', from, to };
 }
 
 /**

@@ -23,7 +23,7 @@ export type LockReason = 'startup' | 'resume' | 'reconnect';
  * - `incoming-change`: Sync brings in a change for the open note.
  *
  * Open reasons:
- * - `idle`: no lock happened yet.
+ * - `idle`: no lock happened yet, or a lock ended because Sync was paused or unreadable, and Sync runs again.
  * - `fully-synced`: Sync reported a fresh "Fully synced".
  * - `download-complete`: the download for the locked note ended.
  * - `quiet`: Sync stayed synced with no activity for the quiet time.
@@ -45,15 +45,19 @@ export type GateReason =
 	| 'unavailable';
 
 /**
- * Input events for {@link Gate.handle}. `at` is a time in milliseconds, for example `Date.now()`.
+ * Input events for {@link Gate.handle}. `at` is a monotonic time in milliseconds,
+ * for example `performance.now()`. Wall-clock time can jump and is not safe for the timers.
  *
- * A `snapshot` event carries `networkOnline`, the network state of the device (for example `navigator.onLine`).
+ * - A `snapshot` event carries `networkOnline`, the network state of the device (for example `navigator.onLine`).
+ * - A `log-entry` event carries `openPaths`, the paths of all notes that are open in an editor.
+ * - A `rename` event tells that a file or folder moved from `from` to `to`.
  */
 export type GateEvent =
 	| { type: 'lock-trigger'; reason: LockReason; at: number }
 	| { type: 'snapshot'; snapshot: SyncSnapshot; networkOnline: boolean; at: number }
-	| { type: 'log-entry'; entry: unknown; openPath?: string; at: number }
+	| { type: 'log-entry'; entry: unknown; openPaths?: readonly string[]; at: number }
 	| { type: 'tick'; at: number }
+	| { type: 'rename'; from: string; to: string }
 	| { type: 'edit-anyway' };
 
 /**
@@ -146,11 +150,14 @@ export type GateCoverage = { kind: 'all-notes' } | { kind: 'single-note'; notePa
  * - When the network is down, editing stays open with a banner. When the network is up
  *   but Sync has no server connection, a lock waits for the connect grace time first.
  * - When Sync is paused, or its state cannot be read, editing stays open with a banner.
+ *   A vault lock that arrives or ends in that time waits, and starts on the first readable,
+ *   unpaused state. When paused Sync runs again, the gate locks as on a reconnect.
  * - "Edit anyway" always ends the current lock.
  */
 export class Gate {
 	private scope: LockScope = 'none';
 	private notePath: string | undefined = undefined;
+	private pendingLock: LockReason | undefined = undefined;
 	private lockReason: GateReason = 'idle';
 	private openReason: GateReason = 'idle';
 	private syncState: SyncState | undefined = undefined;
@@ -210,12 +217,16 @@ export class Gate {
 				break;
 			case 'log-entry':
 				this.advanceClock(event.at);
-				this.onLogEntry(event.entry, event.openPath, event.at);
+				this.onLogEntry(event.entry, event.openPaths ?? [], event.at);
 				break;
 			case 'tick':
 				this.advanceClock(event.at);
 				break;
+			case 'rename':
+				this.onRename(event.from, event.to);
+				break;
 			case 'edit-anyway':
+				this.pendingLock = undefined;
 				this.release('edit-anyway');
 				break;
 		}
@@ -244,14 +255,23 @@ export class Gate {
 		}
 
 		if (snapshot.state === 'unavailable' || snapshot.state === 'paused') {
-			this.release(snapshot.state);
+			this.holdLock(snapshot.state);
 			return;
 		}
-		const reconnected = networkOnline && (snapshot.state !== 'disconnected' || !wasNetworkOnline);
-		if (wasOffline && reconnected) {
-			// This snapshot was taken at the reconnect, so it cannot unlock.
-			this.lockVault('reconnect', at);
-			return;
+		if (this.openReason === 'paused' || this.openReason === 'unavailable') {
+			this.openReason = 'idle';
+		}
+		if (this.pendingLock !== undefined) {
+			// First readable, unpaused state after a lock waited. The lock starts now, so a
+			// "synced" in this snapshot cannot unlock, but a not-synced state counts as progress.
+			this.lockVault(this.pendingLock, at);
+		} else {
+			const reconnected = networkOnline && (snapshot.state !== 'disconnected' || !wasNetworkOnline);
+			if (wasOffline && reconnected) {
+				// This snapshot was taken at the reconnect, so it cannot unlock.
+				this.lockVault('reconnect', at);
+				return;
+			}
 		}
 		if (this.scope === 'none') {
 			return;
@@ -265,7 +285,29 @@ export class Gate {
 		}
 	}
 
-	private onLogEntry(entry: unknown, openPath: string | undefined, at: number): void {
+	/**
+	 * Sync is paused or unreadable: end the lock and keep a vault lock reason for later.
+	 */
+	private holdLock(state: 'unavailable' | 'paused'): void {
+		if (this.scope === 'vault' && isLockReason(this.lockReason)) {
+			this.pendingLock = this.lockReason;
+		}
+		if (state === 'paused') {
+			// Changes from other devices collect while Sync is paused. Lock when it runs again.
+			this.pendingLock ??= 'reconnect';
+		}
+		if (this.scope !== 'none') {
+			this.release(state);
+		}
+	}
+
+	private onRename(from: string, to: string): void {
+		if (this.scope === 'note' && this.notePath !== undefined) {
+			this.notePath = renamedPath(this.notePath, from, to) ?? this.notePath;
+		}
+	}
+
+	private onLogEntry(entry: unknown, openPaths: readonly string[], at: number): void {
 		this.lastProgressAt = at;
 		this.quietSince = at;
 		if (this.isFailOpen()) {
@@ -282,8 +324,11 @@ export class Gate {
 		}
 		const { direction, path } = classifyLogEntry(entry);
 		const incoming = direction === 'download' || direction === 'merge';
-		if (incoming && path !== undefined && openPath !== undefined && path === openPath) {
-			this.lock('note', 'incoming-change', at, path);
+		if (incoming && path !== undefined && openPaths.includes(path)) {
+			if (this.scope !== 'note' || this.notePath !== path) {
+				this.lock('note', 'incoming-change', at, path);
+			}
+			// A repeated download of the locked note keeps the progress toward the unlock.
 			return;
 		}
 		if (this.scope === 'note' && direction === 'download' && path === undefined) {
@@ -294,8 +339,11 @@ export class Gate {
 
 	private lockVault(reason: LockReason, at: number): void {
 		if (this.syncState === 'unavailable' || this.syncState === 'paused') {
+			// Sync progress cannot be seen now. The lock starts on the first readable, unpaused state.
+			this.pendingLock = reason;
 			return;
 		}
+		this.pendingLock = undefined;
 		if (!this.networkOnline) {
 			// Offline: stay open. The network return locks again.
 			this.offline = true;
@@ -385,6 +433,24 @@ export class Gate {
 		}
 		return 'none';
 	}
+}
+
+/**
+ * Gets the new path of `path` after a file or folder moved from `from` to `to`.
+ * Returns undefined when the move does not change `path`.
+ */
+export function renamedPath(path: string, from: string, to: string): string | undefined {
+	if (path === from) {
+		return to;
+	}
+	if (from !== '' && path.startsWith(`${from}/`)) {
+		return `${to}${path.slice(from.length)}`;
+	}
+	return undefined;
+}
+
+function isLockReason(reason: GateReason): reason is LockReason {
+	return reason === 'startup' || reason === 'resume' || reason === 'reconnect';
 }
 
 /**

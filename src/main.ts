@@ -1,4 +1,4 @@
-import { apiVersion, normalizePath, Notice, Platform, Plugin } from 'obsidian';
+import { apiVersion, MarkdownView, normalizePath, Notice, Platform, Plugin } from 'obsidian';
 import { describeShape, diagnosticFileName, DiagnosticLog } from './diagnostics';
 import { EditorLock, StatusBarIndicator } from './editor-lock';
 import { Gate, type GateEvent, type GateState } from './gate';
@@ -143,9 +143,20 @@ export default class SyncGatePlugin extends Plugin {
 	private onSyncEvent(event: SyncEventName, entry: unknown): void {
 		const at = Date.now();
 		if (event === 'new-log' && entry !== undefined) {
-			this.apply({ type: 'log-entry', entry, openPath: this.app.workspace.getActiveFile()?.path, at });
+			this.apply({ type: 'log-entry', entry, openPaths: this.openNotePaths(), at });
 		}
 		this.applySnapshot(at);
+	}
+
+	private openNotePaths(): string[] {
+		const paths: string[] = [];
+		for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
+			const path = leaf.view instanceof MarkdownView ? leaf.view.file?.path : undefined;
+			if (path !== undefined) {
+				paths.push(path);
+			}
+		}
+		return paths;
 	}
 
 	private pollSync(): void {
@@ -196,7 +207,7 @@ export default class SyncGatePlugin extends Plugin {
 				this.diagnostics.record(at, 'log-entry', {
 					direction,
 					namesFile: path !== undefined,
-					isOpenNote: path !== undefined && path === event.openPath,
+					isOpenNote: path !== undefined && (event.openPaths ?? []).includes(path),
 				});
 				break;
 			}

@@ -3,6 +3,7 @@ import {
 	Gate,
 	isNoteCovered,
 	isNoteLocked,
+	renamedPath,
 	type GateBanner,
 	type GateCoverage,
 	type GateEvent,
@@ -10,7 +11,7 @@ import {
 	type GateReason,
 	type GateState,
 } from '../src/gate';
-import { editAnyway, log, networkDown, snapshot, tick, trigger } from './builders';
+import { editAnyway, log, networkDown, rename, snapshot, tick, trigger } from './builders';
 
 const OPTIONS: GateOptions = { slowAfterMs: 20_000, quietUnlockMs: 15_000, connectGraceMs: 10_000 };
 
@@ -155,6 +156,35 @@ describe('Gate', () => {
 			[trigger('startup', 0), snapshot('syncing', 1), log(`Downloading file ${INBOX}`, 2, INBOX), log('Download complete', 3, INBOX)],
 			vault('startup'),
 		],
+		['locks a note that is open in another pane', [snapshot('synced', 0), log(`Downloading file ${INBOX}`, 1, ['Other.md', INBOX])], inbox()],
+		[
+			'a repeated download of the locked note keeps the progress',
+			[
+				snapshot('synced', 0),
+				log(`Downloading file ${INBOX}`, 1, INBOX),
+				snapshot('syncing', 2),
+				log(`Downloading file ${INBOX}`, 3, INBOX),
+				snapshot('synced', 4),
+			],
+			open('fully-synced'),
+		],
+	]);
+
+	cases('A note lock follows a rename of the locked note', [
+		['moves the lock to the new path', [snapshot('synced', 0), log(`Downloading file ${INBOX}`, 1, INBOX), rename(INBOX, 'Notes/Inbox.md')], inbox({ notePath: 'Notes/Inbox.md' })],
+		[
+			'moves the lock when a parent folder moves',
+			[snapshot('synced', 0), log('Downloading file Notes/Inbox.md', 1, 'Notes/Inbox.md'), rename('Notes', 'Archive')],
+			inbox({ notePath: 'Archive/Inbox.md' }),
+		],
+		['a rename of another note keeps the lock', [snapshot('synced', 0), log(`Downloading file ${INBOX}`, 1, INBOX), rename('Other.md', 'Other 2.md')], inbox()],
+		['a rename while open stays open', [snapshot('synced', 0), rename(INBOX, 'Notes/Inbox.md')], open()],
+		['a rename keeps a vault lock', [trigger('startup', 0), rename(INBOX, 'Notes/Inbox.md')], vault('startup')],
+		[
+			'the moved lock still ends on "Download complete"',
+			[snapshot('synced', 0), log(`Downloading file ${INBOX}`, 1, INBOX), rename(INBOX, 'Notes/Inbox.md'), log('Download complete', 2, 'Notes/Inbox.md')],
+			open('download-complete'),
+		],
 	]);
 
 	cases('R3: a change for a different note does not lock', [
@@ -249,7 +279,21 @@ describe('Gate', () => {
 		['a vault lock ends when Sync is paused', [trigger('startup', 0), snapshot('paused', 1)], PAUSED],
 		['startup while paused', [snapshot('paused', 0), trigger('startup', 1)], PAUSED],
 		['a download for the open note while paused', [snapshot('paused', 0), log(`Downloading file ${INBOX}`, 1, INBOX)], PAUSED],
-		['the banner clears when Sync runs again', [snapshot('paused', 0), snapshot('synced', 1)], open('paused')],
+		['a note lock ends when Sync is paused', [snapshot('synced', 0), log(`Downloading file ${INBOX}`, 1, INBOX), snapshot('paused', 2)], PAUSED],
+	]);
+
+	cases('Paused Sync that runs again locks like a reconnect', [
+		['locks when Sync runs again', [snapshot('paused', 0), snapshot('synced', 1)], vault('reconnect')],
+		['locks as connecting when Sync runs again with no server connection', [snapshot('paused', 0), snapshot('disconnected', 1)], vault('reconnect', { connecting: true })],
+		['stays open with the banner while Sync stays paused', [snapshot('paused', 0), snapshot('paused', 1), tick(30_000)], PAUSED],
+		['unlocks after syncing then synced', [snapshot('paused', 0), snapshot('syncing', 1), snapshot('synced', 2)], open('fully-synced')],
+		['unlocks at the quiet time', [snapshot('paused', 0), snapshot('synced', 1), tick(15_001)], open('quiet')],
+		['a resume while paused keeps its reason', [snapshot('paused', 0), trigger('resume', 1), snapshot('synced', 2)], vault('resume')],
+		['a vault lock that the pause ended starts again', [trigger('startup', 0), snapshot('paused', 1), snapshot('checking', 2)], vault('startup')],
+		['locks after paused, then unreadable, then running', [snapshot('paused', 0), snapshot('unavailable', 1), snapshot('synced', 2)], vault('reconnect')],
+		['with no network, stays open with the offline banner', [snapshot('paused', 0, {}, false), networkDown(1)], OFFLINE],
+		['with no network, the network return locks', [snapshot('paused', 0, {}, false), networkDown(1), snapshot('checking', 2)], vault('reconnect')],
+		['edit anyway while paused cancels the lock', [snapshot('paused', 0), editAnyway(), snapshot('synced', 1)], open('edit-anyway')],
 	]);
 
 	cases('Edit anyway is always available', [
@@ -271,7 +315,42 @@ describe('Gate', () => {
 		['resume while unavailable', [snapshot('unavailable', 0), trigger('resume', 1)], UNAVAILABLE],
 		['a download for the open note while unavailable', [snapshot('unavailable', 0), log(`Downloading file ${INBOX}`, 1, INBOX)], UNAVAILABLE],
 		['the unavailable banner wins over the offline banner', [networkDown(0), snapshot('unavailable', 1, {}, false)], UNAVAILABLE],
-		['a later readable state removes the banner', [snapshot('unavailable', 0), snapshot('synced', 1)], open('unavailable')],
+		['a later readable state removes the banner', [snapshot('unavailable', 0), snapshot('synced', 1)], open('idle')],
+		[
+			'a later readable state keeps the reason of the last unlock',
+			[trigger('startup', 0), snapshot('syncing', 1), snapshot('synced', 2), snapshot('unavailable', 3), snapshot('synced', 4)],
+			open('fully-synced'),
+		],
+		[
+			'a note lock that ended does not start again',
+			[snapshot('synced', 0), log(`Downloading file ${INBOX}`, 1, INBOX), snapshot('unavailable', 2), snapshot('synced', 3)],
+			open('idle'),
+		],
+	]);
+
+	cases('A lock that waits for an unreadable Sync state starts when the state is readable', [
+		['a startup lock waits', [snapshot('unavailable', 0), trigger('startup', 1), snapshot('unavailable', 2)], UNAVAILABLE],
+		['a startup lock starts on the first readable state', [snapshot('unavailable', 0), trigger('startup', 1), snapshot('synced', 2)], vault('startup')],
+		['a resume lock starts on the first readable state', [snapshot('unavailable', 0), trigger('resume', 1), snapshot('checking', 2)], vault('resume')],
+		['a lock that the unreadable state ended starts again', [trigger('startup', 0), snapshot('unavailable', 1), snapshot('synced', 2)], vault('startup')],
+		[
+			'a not-synced state on the first readable state counts as progress',
+			[snapshot('unavailable', 0), trigger('startup', 1), snapshot('syncing', 2), snapshot('synced', 3)],
+			open('fully-synced'),
+		],
+		[
+			'unlocks on a fresh "Fully synced" after the first readable state',
+			[snapshot('unavailable', 0), trigger('startup', 1), snapshot('synced', 2), snapshot('syncing', 3), snapshot('synced', 4)],
+			open('fully-synced'),
+		],
+		['unlocks at the quiet time', [snapshot('unavailable', 0), trigger('startup', 1), snapshot('synced', 2), tick(15_002)], open('quiet')],
+		['waits through a pause', [snapshot('unavailable', 0), trigger('startup', 1), snapshot('paused', 2), snapshot('synced', 3)], vault('startup')],
+		[
+			'with no network, the network return locks',
+			[snapshot('unavailable', 0), trigger('startup', 1), networkDown(2), snapshot('checking', 3)],
+			vault('reconnect'),
+		],
+		['edit anyway cancels the waiting lock', [snapshot('unavailable', 0), trigger('startup', 1), editAnyway(), snapshot('synced', 2)], open('edit-anyway')],
 	]);
 
 	it('applies new options', () => {
@@ -282,6 +361,18 @@ describe('Gate', () => {
 		gate.setOptions({ quietUnlockMs: 1_000 });
 		gate.handle(snapshot('synced', 5_001));
 		expect(gate.handle(tick(6_001))).toEqual(open('quiet'));
+	});
+});
+
+describe('renamedPath', () => {
+	it.each<[string, string, string, string, string | undefined]>([
+		['the file itself', INBOX, INBOX, 'Notes/Inbox.md', 'Notes/Inbox.md'],
+		['a parent folder', 'Notes/Inbox.md', 'Notes', 'Archive', 'Archive/Inbox.md'],
+		['a nested parent folder', 'A/B/Inbox.md', 'A', 'C', 'C/B/Inbox.md'],
+		['another file', INBOX, 'Other.md', 'Other 2.md', undefined],
+		['a folder with the same name start', 'Notes/Inbox.md', 'Not', 'Archive', undefined],
+	])('%s', (_label, path, from, to, expected) => {
+		expect(renamedPath(path, from, to)).toBe(expected);
 	});
 });
 
