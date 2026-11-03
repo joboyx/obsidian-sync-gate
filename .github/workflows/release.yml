@@ -9,16 +9,20 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
-      - name: Use Node.js 22
+      - name: Use Node.js from .nvmrc
         uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Check that the tag matches the manifest version
@@ -27,6 +31,20 @@ jobs:
           version="$(node -p "require('./manifest.json').version")"
           if [ "$tag" != "$version" ]; then
             echo "::error::Tag $tag does not match manifest.json version $version."
+            exit 1
+          fi
+
+      - name: Get the release notes from CHANGELOG.md
+        run: |
+          # Print the lines under "## [<tag>]" up to the next version heading, without link definitions.
+          awk -v heading="## [${GITHUB_REF_NAME}]" '
+            index($0, heading) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found && /^\[[^]]+\]: / { next }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::CHANGELOG.md has no section for ${GITHUB_REF_NAME}."
             exit 1
           fi
 
@@ -41,6 +59,7 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
             --draft \
             --verify-tag \
             main.js manifest.json styles.css
