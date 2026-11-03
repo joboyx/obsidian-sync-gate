@@ -1,13 +1,148 @@
-/* Sync Gate styles. Use theme variables so the plugin follows the active theme. */
+/* Sync Gate styles. Theme variables only, so the plugin follows the active theme. */
 
+/* The view content of a note that shows a lock card or a banner. */
+.sync-gate-host {
+	position: relative;
+}
+
+/* With a banner, stack the banner above the note so it pushes the content down. */
+.sync-gate-host.sync-gate-has-banner {
+	display: flex;
+	flex-direction: column;
+}
+
+.sync-gate-host.sync-gate-has-banner > :not(.sync-gate-banner):not(.sync-gate-overlay) {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+/* Lock: a scrim over the note that takes all pointer input, with a centered card. */
+.sync-gate-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: var(--layer-cover, 5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--size-4-4);
+	background-color: color-mix(in srgb, var(--background-primary) 70%, transparent);
+	pointer-events: auto;
+}
+
+.sync-gate-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--size-4-2);
+	width: 100%;
+	max-width: 320px;
+	max-height: 100%;
+	overflow-y: auto;
+	padding: var(--size-4-4);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-l);
+	background-color: var(--background-primary);
+	box-shadow: var(--shadow-s);
+	text-align: center;
+}
+
+.sync-gate-card-icon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+.sync-gate-card-icon svg {
+	width: var(--icon-l, 24px);
+	height: var(--icon-l, 24px);
+}
+
+.sync-gate-card-title {
+	color: var(--text-normal);
+	font-size: var(--font-ui-medium);
+	font-weight: var(--font-semibold, 600);
+}
+
+.sync-gate-card-text {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.sync-gate-card button {
+	margin-top: var(--size-4-1);
+}
+
+@keyframes sync-gate-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.sync-gate-card-icon.is-spinning svg {
+	animation: sync-gate-spin 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sync-gate-card-icon.is-spinning svg {
+		animation: none;
+	}
+}
+
+/* Landscape phones: a smaller card so it fits the short view. */
+@media (max-height: 420px) {
+	.sync-gate-overlay {
+		padding: var(--size-4-2);
+	}
+
+	.sync-gate-card {
+		gap: var(--size-4-1);
+		padding: var(--size-4-2) var(--size-4-3);
+	}
+}
+
+/* Banner: a slim one-line notice at the top of the note. */
 .sync-gate-banner {
-	padding: var(--size-4-1) var(--size-4-2);
-	border-radius: var(--radius-s);
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-4-1) var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
 	background-color: var(--background-secondary);
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
 }
 
-.sync-gate-banner.is-warning {
-	color: var(--text-warning);
+.sync-gate-banner-icon {
+	display: flex;
+	flex: 0 0 auto;
+	color: var(--text-faint);
+}
+
+.sync-gate-banner-icon svg {
+	width: var(--icon-s, 16px);
+	height: var(--icon-s, 16px);
+}
+
+.sync-gate-banner-text {
+	min-width: 0;
+}
+
+/* Desktop status bar item. */
+.sync-gate-status {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-4-1);
+}
+
+.sync-gate-status-icon {
+	display: flex;
+}
+
+.sync-gate-status-icon svg {
+	width: var(--icon-xs, 14px);
+	height: var(--icon-xs, 14px);
+}
+
+.sync-gate-hidden {
+	display: none;
 }
