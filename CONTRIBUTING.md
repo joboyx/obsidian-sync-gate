@@ -26,13 +26,17 @@ npm ci
 
 | File                 | Purpose                                                                 |
 | -------------------- | ----------------------------------------------------------------------- |
-| `src/main.ts`        | Plugin entry. Sends app and Sync events to the gate.                    |
-| `src/gate.ts`        | Lock rules as a state machine. No app API, no timers.                   |
-| `src/sync-status.ts` | Reads the internal Sync state. Checks every member and never throws.    |
-| `src/log-entry.ts`   | Classifies Sync log messages by direction and file path.                |
-| `src/settings.ts`    | Settings and the settings tab.                                          |
+| `src/main.ts`           | Plugin entry. Sends app, network and Sync events to the gate, and registers the commands. |
+| `src/gate.ts`           | Lock rules as a state machine. No app API, no timers.                   |
+| `src/gate-view.ts`      | Maps the gate state to the icons and text that the UI shows.            |
+| `src/editor-lock.ts`    | Applies the gate state to open notes: Reading view, lock card, banner, state indicator. |
+| `src/sync-status.ts`    | Reads the internal Sync state. Checks every member and never throws.    |
+| `src/log-entry.ts`      | Classifies Sync log messages by direction and file path.                |
+| `src/diagnostics.ts`    | Ring buffer of gate inputs and decisions for the diagnostic log.        |
+| `src/settings-model.ts` | Settings data, defaults, validation and conversion to gate options.     |
+| `src/settings.ts`       | The settings tab.                                                       |
 
-Keep `gate.ts`, `sync-status.ts` and `log-entry.ts` free of the `obsidian` import, so the tests can run in Node.
+Only `main.ts`, `editor-lock.ts` and `settings.ts` import `obsidian`. Keep all other modules free of it, so the tests can run in Node.
 
 ## Test
 
