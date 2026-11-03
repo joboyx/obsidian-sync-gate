@@ -221,14 +221,15 @@ function mapSnapshot(sync: unknown): SyncSnapshot {
 		return { state: 'unavailable' };
 	}
 
-	if (status === 'error' || member(sync, 'error') === true || lastEntry?.error === true) {
-		return snapshot('error');
-	}
 	if (status === 'paused' || member(sync, 'pause') === true) {
 		return snapshot('paused');
 	}
+	// A disconnect comes before an error, so the connect grace time and the offline banner apply.
 	if (status === 'disconnected' || DISCONNECTED_TEXT.test(message)) {
 		return snapshot('disconnected');
+	}
+	if (status === 'error' || member(sync, 'error') === true) {
+		return snapshot('error');
 	}
 	if (status === 'uninitialized') {
 		return snapshot('checking');
@@ -251,13 +252,17 @@ function mapSnapshot(sync: unknown): SyncSnapshot {
 		return snapshot('unavailable');
 	}
 
-	// No getStatus(): fall back to the status text and the log.
+	// No getStatus(): fall back to the status text and the log. A log entry is history,
+	// so only this path reads its error flag. getStatus() tells the current state.
+	if (lastEntry && DISCONNECTED_TEXT.test(lastEntry.info)) {
+		return snapshot('disconnected');
+	}
 	const complete = message === FULLY_SYNCED_MESSAGE || lastEntry?.info === FULLY_SYNCED_MESSAGE;
 	if (complete && syncing !== true) {
 		return snapshot('synced');
 	}
-	if (lastEntry && DISCONNECTED_TEXT.test(lastEntry.info)) {
-		return snapshot('disconnected');
+	if (lastEntry?.error === true) {
+		return snapshot('error');
 	}
 	if (lastEntry && ACTIVE_TEXT.test(lastEntry.info)) {
 		return snapshot('syncing');
