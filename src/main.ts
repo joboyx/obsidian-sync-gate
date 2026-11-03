@@ -49,6 +49,7 @@ export default class SyncGatePlugin extends Plugin {
 			onEditAnyway: () => this.apply({ type: 'edit-anyway' }),
 			onIndicatorClick: () => this.showStatus(),
 			headerIndicator: Platform.isMobile,
+			headerIndicatorWhenOpen: () => this.settings.showMobileStatusWhenOpen,
 		});
 		if (!Platform.isMobile) {
 			this.statusBar = new StatusBarIndicator(this.addStatusBarItem(), () => this.showStatus());

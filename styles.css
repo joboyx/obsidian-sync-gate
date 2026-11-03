@@ -143,6 +143,23 @@
 	height: var(--icon-xs, 14px);
 }
 
+/* Mobile note header icon: one color per gate state. */
+.sync-gate-header-action.sync-gate-tone-muted {
+	color: var(--text-muted);
+}
+
+.sync-gate-header-action.sync-gate-tone-accent {
+	color: var(--interactive-accent);
+}
+
+.sync-gate-header-action.sync-gate-tone-warning {
+	color: var(--text-warning, var(--color-orange));
+}
+
+.sync-gate-header-action.sync-gate-tone-error {
+	color: var(--text-error);
+}
+
 .sync-gate-hidden {
 	display: none;
 }

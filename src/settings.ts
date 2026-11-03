@@ -87,6 +87,16 @@ export class SyncGateSettingTab extends PluginSettingTab {
 		);
 
 		new Setting(containerEl)
+			.setName('Show status icon on mobile when editing is open')
+			.setDesc('Off: the icon shows only while editing is blocked, offline or paused.')
+			.addToggle((toggle) =>
+				toggle.setValue(settings.showMobileStatusWhenOpen).onChange(async (value) => {
+					settings.showMobileStatusWhenOpen = value;
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName('Debug logging')
 			.setDesc('Write lock decisions to the developer console and keep a diagnostic log that you can save to a note.')
 			.addToggle((toggle) =>

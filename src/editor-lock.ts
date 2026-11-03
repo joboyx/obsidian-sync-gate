@@ -7,9 +7,20 @@
  * transactions, because that would also block Sync's own updates to the open note.
  */
 
-import { App, MarkdownView, setIcon, setTooltip, type WorkspaceLeaf } from 'obsidian';
+import { App, getIcon, MarkdownView, setIcon, setTooltip, type WorkspaceLeaf } from 'obsidian';
 import { isNoteCovered, isNoteLocked, type GateCoverage, type GateState } from './gate';
-import { bannerView, EDIT_ANYWAY_LABEL, indicatorView, overlayView, type BannerView, type IndicatorView, type OverlayView } from './gate-view';
+import {
+	bannerView,
+	EDIT_ANYWAY_LABEL,
+	ICON_FALLBACKS,
+	INDICATOR_TONES,
+	indicatorView,
+	overlayView,
+	showsHeaderIndicator,
+	type BannerView,
+	type IndicatorView,
+	type OverlayView,
+} from './gate-view';
 import { ModeMemory } from './mode-memory';
 
 const READING_MODE = 'preview';
@@ -37,6 +48,11 @@ export interface EditorLockOptions {
 	 * True to show the gate state as a note header icon. Used on mobile, where there is no status bar.
 	 */
 	headerIndicator: boolean;
+	/**
+	 * Tells if the note header icon also shows while editing is open.
+	 * Used only when `headerIndicator` is true.
+	 */
+	headerIndicatorWhenOpen: () => boolean;
 }
 
 /**
@@ -76,6 +92,9 @@ export class EditorLock {
 			return;
 		}
 		const coverage = this.options.coverage();
+		const indicator = indicatorView(state);
+		const showHeaderAction =
+			this.options.headerIndicator && showsHeaderIndicator(indicator.mode, this.options.headerIndicatorWhenOpen());
 		const leaves = new Set<WorkspaceLeaf>();
 		const views = new Set<MarkdownView>();
 		for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
@@ -94,9 +113,7 @@ export class EditorLock {
 			}
 			this.renderOverlay(view.contentEl, locked ? overlayView(state) : undefined);
 			this.renderBanner(view.contentEl, !locked && isNoteCovered(path, coverage) ? bannerView(state.banner) : undefined);
-			if (this.options.headerIndicator) {
-				this.renderHeaderAction(view, indicatorView(state));
-			}
+			this.renderHeaderAction(view, showHeaderAction ? indicator : undefined);
 		}
 		this.forgetClosed(leaves, views);
 	}
@@ -232,27 +249,37 @@ export class EditorLock {
 		}
 	}
 
-	private renderHeaderAction(view: MarkdownView, indicator: IndicatorView): void {
+	/**
+	 * Adds, updates or removes the note header icon of one view. A state change updates
+	 * the same element, so the other header icons do not move.
+	 */
+	private renderHeaderAction(view: MarkdownView, indicator: IndicatorView | undefined): void {
 		const existing = this.actions.get(view);
-		if (indicator.mode === 'open') {
+		if (!indicator) {
 			existing?.el.remove();
 			this.actions.delete(view);
 			return;
 		}
-		const key = `${indicator.icon}|${indicator.tooltip}`;
+		const key = `${indicator.icon}|${indicator.tooltip}|${indicator.tone}`;
 		if (existing?.key === key) {
 			return;
 		}
-		if (existing) {
-			setIcon(existing.el, indicator.icon);
-			setTooltip(existing.el, indicator.tooltip);
-			existing.el.setAttribute('aria-label', indicator.tooltip);
-			existing.key = key;
-			return;
+		const icon = availableIcon(indicator.icon);
+		let action = existing;
+		if (action) {
+			setIcon(action.el, icon);
+			action.key = key;
+		} else {
+			const el = view.addAction(icon, indicator.tooltip, () => this.options.onIndicatorClick());
+			el.addClass('sync-gate-header-action');
+			action = { el, key };
+			this.actions.set(view, action);
 		}
-		const el = view.addAction(indicator.icon, indicator.tooltip, () => this.options.onIndicatorClick());
-		el.addClass('sync-gate-header-action');
-		this.actions.set(view, { el, key });
+		setTooltip(action.el, indicator.tooltip);
+		action.el.setAttribute('aria-label', indicator.tooltip);
+		for (const tone of INDICATOR_TONES) {
+			action.el.toggleClass(`sync-gate-tone-${tone}`, tone === indicator.tone);
+		}
 	}
 
 	private forgetClosed(leaves: Set<WorkspaceLeaf>, views: Set<MarkdownView>): void {
@@ -308,7 +335,7 @@ export class StatusBarIndicator {
 		}
 		this.key = key;
 		this.el.dataset.syncGateMode = indicator.mode;
-		setIcon(this.iconEl, indicator.icon);
+		setIcon(this.iconEl, availableIcon(indicator.icon));
 		this.labelEl.setText(indicator.label);
 		this.labelEl.toggleClass('sync-gate-hidden', indicator.label === '');
 		setTooltip(this.el, indicator.tooltip, { placement: 'top' });
@@ -335,6 +362,14 @@ function setContentInert(host: HTMLElement, inert: boolean): void {
 			child.removeAttribute(INERT_MARKER);
 		}
 	}
+}
+
+/**
+ * Gets the icon name to show: the given icon, or its fallback when the app does not have it.
+ */
+function availableIcon(icon: string): string {
+	const fallback = ICON_FALLBACKS[icon];
+	return fallback !== undefined && getIcon(icon) === null ? fallback : icon;
 }
 
 function currentMode(leaf: WorkspaceLeaf): string | undefined {

@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { GateBanner, GateReason, GateState } from '../src/gate';
-import { bannerView, indicatorMode, indicatorView, overlayView, statusText, type IndicatorView, type OverlayView } from '../src/gate-view';
+import {
+	bannerView,
+	indicatorMode,
+	indicatorView,
+	overlayView,
+	showsHeaderIndicator,
+	statusText,
+	type IndicatorMode,
+	type IndicatorView,
+	type OverlayView,
+} from '../src/gate-view';
 
 function open(reason: GateReason = 'idle', banner: GateBanner = 'none'): GateState {
 	return { locked: false, scope: 'none', banner, slow: false, connecting: false, reason };
@@ -14,19 +24,32 @@ const NOTE_LOCK = locked({ scope: 'note', notePath: 'Inbox.md', reason: 'incomin
 
 describe('indicatorView', () => {
 	it.each<[string, GateState, IndicatorView]>([
-		['open is icon only', open(), { mode: 'open', icon: 'unlock', label: '', tooltip: 'Sync Gate: editing is open' }],
-		['vault lock', locked(), { mode: 'locked', icon: 'lock', label: 'Locked', tooltip: 'Sync Gate: waiting for Sync' }],
-		['slow lock', locked({ slow: true }), { mode: 'locked', icon: 'alert-triangle', label: 'Locked', tooltip: 'Sync Gate: waiting for Sync' }],
+		['open is icon only', open(), { mode: 'open', icon: 'check-circle-2', label: '', tooltip: 'Sync Gate: editing open', tone: 'muted' }],
+		[
+			'open after edit anyway',
+			open('edit-anyway'),
+			{ mode: 'open', icon: 'check-circle-2', label: '', tooltip: 'Sync Gate: editing open', tone: 'muted' },
+		],
+		['vault lock', locked(), { mode: 'locked', icon: 'lock', label: 'Locked', tooltip: 'Sync Gate: waiting for Sync', tone: 'accent' }],
+		[
+			'slow lock',
+			locked({ slow: true }),
+			{ mode: 'locked', icon: 'alert-triangle', label: 'Locked', tooltip: 'Sync Gate: waiting for Sync', tone: 'accent' },
+		],
 		[
 			'note lock',
 			NOTE_LOCK,
-			{ mode: 'locked', icon: 'lock', label: 'Locked', tooltip: 'Sync Gate: this note is updating from another device' },
+			{ mode: 'locked', icon: 'lock', label: 'Locked', tooltip: 'Sync Gate: this note is updating from another device', tone: 'accent' },
 		],
-		['offline', open('offline', 'offline'), { mode: 'offline', icon: 'wifi-off', label: 'Offline', tooltip: 'Sync Gate: offline, editing is open' }],
+		[
+			'offline',
+			open('offline', 'offline'),
+			{ mode: 'offline', icon: 'wifi-off', label: 'Offline', tooltip: 'Sync Gate: offline, editing is open', tone: 'warning' },
+		],
 		[
 			'paused',
 			open('paused', 'paused'),
-			{ mode: 'paused', icon: 'pause-circle', label: 'Paused', tooltip: 'Sync Gate: Sync is paused, editing is open' },
+			{ mode: 'paused', icon: 'pause-circle', label: 'Paused', tooltip: 'Sync Gate: Sync is paused, editing is open', tone: 'warning' },
 		],
 		[
 			'unavailable',
@@ -36,11 +59,29 @@ describe('indicatorView', () => {
 				icon: 'alert-triangle',
 				label: 'Unavailable',
 				tooltip: 'Sync Gate: Sync status is unavailable, editing is open',
+				tone: 'error',
 			},
 		],
 	])('%s', (_label, state, expected) => {
 		expect(indicatorView(state)).toEqual(expected);
 		expect(indicatorMode(state)).toBe(expected.mode);
+	});
+});
+
+describe('showsHeaderIndicator', () => {
+	it.each<[IndicatorMode, boolean, boolean]>([
+		['open', true, true],
+		['open', false, false],
+		['locked', true, true],
+		['locked', false, true],
+		['offline', true, true],
+		['offline', false, true],
+		['paused', true, true],
+		['paused', false, true],
+		['unavailable', true, true],
+		['unavailable', false, true],
+	])('%s with show-when-open %s shows %s', (mode, showWhenOpen, expected) => {
+		expect(showsHeaderIndicator(mode, showWhenOpen)).toBe(expected);
 	});
 });
 

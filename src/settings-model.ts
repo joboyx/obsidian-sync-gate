@@ -41,6 +41,11 @@ export interface SyncGateSettings {
 	 */
 	connectGraceSeconds: number;
 	/**
+	 * When true, the note header icon on mobile also shows while editing is open.
+	 * When false, it shows only while editing is blocked, offline or paused.
+	 */
+	showMobileStatusWhenOpen: boolean;
+	/**
 	 * When true, the plugin writes its lock decisions to the developer console
 	 * and keeps a diagnostic log that the user can save.
 	 */
@@ -65,6 +70,7 @@ export const DEFAULT_SETTINGS: SyncGateSettings = {
 	slowAfterSeconds: 20,
 	quietUnlockSeconds: 15,
 	connectGraceSeconds: 10,
+	showMobileStatusWhenOpen: true,
 	debug: false,
 };
 
@@ -100,6 +106,9 @@ export function loadSettings(stored: unknown): SyncGateSettings {
 	}
 	if (typeof data.lockOnResumeMobileOnly === 'boolean') {
 		settings.lockOnResumeMobileOnly = data.lockOnResumeMobileOnly;
+	}
+	if (typeof data.showMobileStatusWhenOpen === 'boolean') {
+		settings.showMobileStatusWhenOpen = data.showMobileStatusWhenOpen;
 	}
 	if (typeof data.debug === 'boolean') {
 		settings.debug = data.debug;

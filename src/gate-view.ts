@@ -11,6 +11,27 @@ import type { GateBanner, GateReason, GateState } from './gate';
 export type IndicatorMode = 'open' | 'locked' | 'offline' | 'paused' | 'unavailable';
 
 /**
+ * Color of the note header icon. Each tone maps to a theme color in styles.css.
+ *
+ * - `muted`: editing is open.
+ * - `accent`: editing is locked.
+ * - `warning`: editing is open, but changes from other devices do not arrive (offline or paused).
+ * - `error`: Sync Gate cannot read the Sync status.
+ */
+export type IndicatorTone = 'muted' | 'accent' | 'warning' | 'error';
+
+/**
+ * All indicator tones, so the UI can remove the previous tone class.
+ */
+export const INDICATOR_TONES: readonly IndicatorTone[] = ['muted', 'accent', 'warning', 'error'];
+
+/**
+ * Icon to use when the app does not have an icon of the indicator.
+ * Older app versions bundle older Lucide icon names.
+ */
+export const ICON_FALLBACKS: Readonly<Record<string, string>> = { 'check-circle-2': 'check-circle' };
+
+/**
  * What the state indicator (status bar item or note header icon) shows.
  */
 export interface IndicatorView {
@@ -30,6 +51,10 @@ export interface IndicatorView {
 	 * Tooltip and accessible name.
 	 */
 	tooltip: string;
+	/**
+	 * Color of the note header icon.
+	 */
+	tone: IndicatorTone;
 }
 
 /**
@@ -115,21 +140,37 @@ export function indicatorView(state: GateState): IndicatorView {
 	const mode = indicatorMode(state);
 	switch (mode) {
 		case 'open':
-			return { mode, icon: 'unlock', label: '', tooltip: 'Sync Gate: editing is open' };
+			return { mode, icon: 'check-circle-2', label: '', tooltip: 'Sync Gate: editing open', tone: 'muted' };
 		case 'locked':
 			return {
 				mode,
 				icon: state.slow ? 'alert-triangle' : 'lock',
 				label: 'Locked',
 				tooltip: state.scope === 'note' ? 'Sync Gate: this note is updating from another device' : 'Sync Gate: waiting for Sync',
+				tone: 'accent',
 			};
 		case 'offline':
-			return { mode, icon: 'wifi-off', label: 'Offline', tooltip: 'Sync Gate: offline, editing is open' };
+			return { mode, icon: 'wifi-off', label: 'Offline', tooltip: 'Sync Gate: offline, editing is open', tone: 'warning' };
 		case 'paused':
-			return { mode, icon: 'pause-circle', label: 'Paused', tooltip: 'Sync Gate: Sync is paused, editing is open' };
+			return { mode, icon: 'pause-circle', label: 'Paused', tooltip: 'Sync Gate: Sync is paused, editing is open', tone: 'warning' };
 		case 'unavailable':
-			return { mode, icon: 'alert-triangle', label: 'Unavailable', tooltip: 'Sync Gate: Sync status is unavailable, editing is open' };
+			return {
+				mode,
+				icon: 'alert-triangle',
+				label: 'Unavailable',
+				tooltip: 'Sync Gate: Sync status is unavailable, editing is open',
+				tone: 'error',
+			};
 	}
+}
+
+/**
+ * Tells if the note header shows the indicator on mobile.
+ * Blocked, offline, paused and unavailable states always show it.
+ * The open state shows it only when `showWhenOpen` is true.
+ */
+export function showsHeaderIndicator(mode: IndicatorMode, showWhenOpen: boolean): boolean {
+	return mode !== 'open' || showWhenOpen;
 }
 
 /**

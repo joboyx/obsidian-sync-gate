@@ -41,7 +41,16 @@ If Sync Gate cannot read the Sync state, for example after an app update changes
 - **Lock card.** A locked note switches to Reading view. A dimmed layer covers the note, with a small card in the center: "Waiting for Sync" for an all-notes lock, or "Updating from another device" for a one-note lock. The card has an **Edit anyway** button. When Sync is slow, the card says "Sync is taking longer than usual" and the button becomes prominent. When the lock ends, the note goes back to the mode it had before.
 - **Banner.** When Sync Gate does not lock because the device is offline, Sync is paused or the Sync state is unavailable, a one-line notice shows at the top of the note.
 - **State indicator on desktop.** An item in the status bar shows the gate state: an icon only when editing is open, and a label for "Locked", "Offline", "Paused" or "Unavailable". Select it to see the state and the reason.
-- **State indicator on mobile.** Phones and tablets have no status bar. When the gate is not open, an icon shows in the note header, next to the other note actions. Select it to see the state and the reason.
+- **Status icon on mobile.** Phones and tablets have no status bar. A status icon always shows in the note header, next to the other note actions. Its color tells the gate state:
+
+  | State                   | Icon                    | Color            |
+  | ----------------------- | ----------------------- | ---------------- |
+  | Editing open            | Check mark              | Muted text color |
+  | Locked                  | Lock                    | Accent color     |
+  | Offline or Sync paused  | No Wi-Fi, or pause      | Warning color    |
+  | Sync status unavailable | Warning triangle        | Error color      |
+
+  Tap the icon to see the state and the reason. When the icon changes, it stays in the same position, so the other header icons do not move. To show the icon only while editing is blocked, offline or paused, turn off **Show status icon on mobile when editing is open**.
 
 All elements use the colors, fonts and icons of your theme.
 
@@ -81,6 +90,7 @@ Install the plugin on every device that edits the vault.
 | Slow sync after (seconds)     | 20        | Time without Sync progress before "Edit anyway" becomes prominent.          |
 | Unlock when sync is quiet (seconds) | 15  | Time that Sync must stay up to date, with no activity, before a lock ends on its own. |
 | Wait for connection (seconds) | 10        | Time that a lock waits for the Sync server while the network is up. After this time, editing opens with the offline banner. |
+| Show status icon on mobile when editing is open | On | When on, the status icon in the note header shows at all times on phones and tablets. When off, it shows only while editing is blocked, offline or paused. |
 | Debug logging                 | Off       | Writes lock decisions to the developer console and turns on the **Save diagnostic log** command. |
 
 All times must be whole numbers greater than 0.

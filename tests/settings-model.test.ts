@@ -17,9 +17,10 @@ describe('parsePositiveInteger', () => {
 });
 
 describe('DEFAULT_SETTINGS', () => {
-	it('locks on resume on mobile only and uses the documented times', () => {
+	it('locks on resume on mobile only, shows the mobile status icon and uses the documented times', () => {
 		expect(DEFAULT_SETTINGS).toMatchObject({
 			lockOnResumeMobileOnly: true,
+			showMobileStatusWhenOpen: true,
 			slowAfterSeconds: 20,
 			quietUnlockSeconds: 15,
 			connectGraceSeconds: 10,
@@ -44,6 +45,7 @@ describe('loadSettings', () => {
 			slowAfterSeconds: 30,
 			quietUnlockSeconds: 5,
 			connectGraceSeconds: 3,
+			showMobileStatusWhenOpen: false,
 			debug: true,
 		};
 		expect(loadSettings(stored)).toEqual(stored);
@@ -57,6 +59,7 @@ describe('loadSettings', () => {
 			slowAfterSeconds: 0,
 			quietUnlockSeconds: -1,
 			connectGraceSeconds: 2.5,
+			showMobileStatusWhenOpen: 'no',
 			debug: 1,
 		};
 		expect(loadSettings(stored)).toEqual(DEFAULT_SETTINGS);
