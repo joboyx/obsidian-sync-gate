@@ -2,10 +2,17 @@ import type { GateEvent, LockReason } from '../src/gate';
 import type { SyncSnapshot, SyncState } from '../src/sync-status';
 
 /**
- * Builds a snapshot event.
+ * Builds a snapshot event. The network is up unless `networkOnline` is false.
  */
-export function snapshot(state: SyncState, at: number, extra: Partial<SyncSnapshot> = {}): GateEvent {
-	return { type: 'snapshot', snapshot: { state, ...extra }, at };
+export function snapshot(state: SyncState, at: number, extra: Partial<SyncSnapshot> = {}, networkOnline = true): GateEvent {
+	return { type: 'snapshot', snapshot: { state, ...extra }, networkOnline, at };
+}
+
+/**
+ * Builds a snapshot event for a device with no network. Sync then reports `disconnected`.
+ */
+export function networkDown(at: number): GateEvent {
+	return snapshot('disconnected', at, {}, false);
 }
 
 /**
