@@ -8,6 +8,7 @@
 
 ## Checklist
 
+- [ ] The branch name is `<feat|fix|docs|chore|ci>/<short-description>`, and the pull request targets `main`.
 - [ ] `npm run lint` passes.
 - [ ] `npm test` passes.
 - [ ] `npm run build` passes.

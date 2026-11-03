@@ -32,16 +32,22 @@ User docs are in `README.md`. Contributor docs are in `CONTRIBUTING.md`.
 
 Run from the repo root with the Node.js version in `.nvmrc`.
 
-| Task                            | Command             |
-| ------------------------------- | ------------------- |
-| Install dependencies            | `npm ci`            |
-| Lint (Obsidian plugin rules)    | `npm run lint`      |
-| Unit tests                      | `npm test`          |
-| Type-check and production build | `npm run build`     |
-| Watch build for a dev vault     | `npm run dev`       |
-| Bump the version                | `npm version <x>`   |
+| Task                            | Command                                  |
+| ------------------------------- | ---------------------------------------- |
+| Install dependencies            | `npm ci`                                 |
+| Lint (Obsidian plugin rules)    | `npm run lint`                           |
+| Unit tests                      | `npm test`                               |
+| Type-check and production build | `npm run build`                          |
+| Watch build for a dev vault     | `npm run dev`                            |
+| Bump the version (release PR)   | `npm version X.Y.Z --no-git-tag-version` |
 
-CI (`.github/workflows/ci.yml`) runs `npm ci`, lint, test and build on every push to `main` and on every pull request. A pushed tag `X.Y.Z` runs `.github/workflows/release.yml`, which builds a draft GitHub release with the notes from `CHANGELOG.md`.
+CI (`.github/workflows/ci.yml`) runs `npm ci`, lint, test and build in the job `check` on every push to `main` and on every pull request. A pushed tag `X.Y.Z` runs `.github/workflows/release.yml`, which builds a draft GitHub release with the notes from `CHANGELOG.md`.
+
+## Branches and pull requests
+
+- Never push to `main`. Every change goes on a branch `<feat|fix|docs|chore|ci>/<short-description>` and merges to `main` through a pull request.
+- The pull request merges with a merge commit after the `check` job passes. Squash merges are off, and the branch is deleted after the merge.
+- Tags are the only thing pushed to the repo directly, and only in the release flow.
 
 ## Rules
 
@@ -59,4 +65,4 @@ CI (`.github/workflows/ci.yml`) runs `npm ci`, lint, test and build on every pus
 ## Skills
 
 - `verify` (`.agents/skills/verify/SKILL.md`): run the checks, load the build in a test vault and prove each lock scenario. Run it after a behavior change.
-- `release` (`.agents/skills/release/SKILL.md`): update the changelog, bump the version, check, tag and push on the owner's yes.
+- `release` (`.agents/skills/release/SKILL.md`): open a release pull request with the changelog and the version bump, merge it, then tag `main` and push the tag on the owner's yes.

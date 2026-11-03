@@ -62,6 +62,10 @@ To see lock decisions, turn on **Debug logging** in the plugin settings and open
 
 ## Pull requests
 
+Every change goes to `main` through a pull request. Do not push to `main`.
+
+- Make a branch from an up-to-date `main` with the name `<type>/<short-description>`, where the type is `feat`, `fix`, `docs`, `chore` or `ci`. For example: `fix/stale-status-lock`.
+- Open the pull request into `main`. It merges with a merge commit after the `check` CI job passes. Squash merges are off, and the branch is deleted after the merge.
 - Use [Conventional Commits](https://www.conventionalcommits.org/) with a scope, for example `fix(gate): keep the note lock on a stale status`.
 - Run `npm run lint`, `npm test` and `npm run build` before you push.
 - Describe what changed and how you tested it.
@@ -70,14 +74,15 @@ To see lock decisions, turn on **Debug logging** in the plugin settings and open
 
 Maintainers only.
 
-1. Update `CHANGELOG.md`: move the `Unreleased` entries under a heading for the new version, for example `## [0.2.0] - 2027-01-31`, and add the link for that version at the end of the file. Commit the change.
-2. Run `npm version <major|minor|patch>`. This updates `manifest.json` and `versions.json` and creates a tag without a `v` prefix.
-3. Push the commit and the tag: `git push --follow-tags`.
-4. The release workflow builds the plugin and creates a draft GitHub release with `main.js`, `manifest.json` and `styles.css`. The release notes are the section of that version in `CHANGELOG.md`.
-5. Check the draft release and publish it.
+1. Create the branch `chore/release-X.Y.Z` from an up-to-date `main`.
+2. Update `CHANGELOG.md`: move the `Unreleased` entries under a heading for the new version, for example `## [0.2.0] - 2027-01-31`, and set the links for `Unreleased` and the new version at the end of the file.
+3. Run `npm version X.Y.Z --no-git-tag-version`. This updates `package.json`, `package-lock.json`, `manifest.json` and `versions.json`, and does not commit or tag.
+4. Commit the changes, push the branch and open a release pull request. Merge it with a merge commit after the `check` CI job passes.
+5. On `main`, pull the merge and create the annotated tag `X.Y.Z`: `git tag -a X.Y.Z -m "Sync Gate X.Y.Z"`. Use no `v` prefix: Obsidian requires the tag to equal the version in `manifest.json`.
+6. Push only the tag: `git push origin X.Y.Z`.
+7. The release workflow builds the plugin and creates a draft GitHub release with `main.js`, `manifest.json` and `styles.css`. The release notes are the section of that version in `CHANGELOG.md`.
+8. Check the assets of the draft release, then publish it.
 
 The workflow fails if the tag does not match the version in `manifest.json`, or if `CHANGELOG.md` has no section for the version.
-
-The first release is different: `manifest.json`, `versions.json` and `CHANGELOG.md` already have version `0.1.0`. Do not run `npm version`. Tag the commit and push the tag: `git tag 0.1.0 && git push origin 0.1.0`. Then continue with step 4.
 
 The `release` skill in `.agents/skills/release/` has the same steps with the checks between them, for maintainers who use a coding agent.
