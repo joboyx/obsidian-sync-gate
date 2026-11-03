@@ -4,7 +4,7 @@
 	"version": "0.1.0",
 	"minAppVersion": "1.5.0",
 	"description": "Blocks editing while Sync is still bringing in changes from your other devices, so a quick edit cannot conflict with newer text.",
-	"author": "joboyx",
+	"author": "Joboy Jordan",
 	"authorUrl": "https://github.com/joboyx",
 	"isDesktopOnly": false
 }
