@@ -1,9 +1,10 @@
 import { apiVersion, MarkdownView, normalizePath, Notice, Platform, Plugin } from 'obsidian';
 import { describeShape, diagnosticFileName, DiagnosticLog } from './diagnostics';
 import { EditorLock, StatusBarIndicator } from './editor-lock';
-import { Gate, type GateEvent, type GateState } from './gate';
+import { Gate, renamedPath, type GateEvent, type GateState } from './gate';
 import { indicatorView, statusText } from './gate-view';
 import { classifyLogEntry, FULLY_SYNCED_MESSAGE } from './log-entry';
+import { ResumeDetector } from './resume-detector';
 import { SyncGateSettingTab } from './settings';
 import { DEFAULT_SETTINGS, loadSettings, toGateCoverage, toGateOptions, type SyncGateSettings } from './settings-model';
 import { findSyncInstance, latestLogEntry, SyncStatusReader, type SyncEventName, type SyncSnapshot } from './sync-status';
@@ -33,6 +34,7 @@ export default class SyncGatePlugin extends Plugin {
 	private readonly diagnostics = new DiagnosticLog();
 	private lastSnapshotKey = '';
 	private lastResumeAt = Number.NEGATIVE_INFINITY;
+	private readonly resumeDetector = new ResumeDetector();
 
 	/**
 	 * Loads settings, sets up the UI and starts to watch Sync once the workspace is ready.
@@ -101,7 +103,9 @@ export default class SyncGatePlugin extends Plugin {
 					return false;
 				}
 				if (!checking) {
-					void this.saveDiagnosticLog();
+					this.saveDiagnosticLog().catch((error: unknown) => {
+						new Notice(`Sync Gate: could not save the diagnostic log. ${errorText(error)}`);
+					});
 				}
 				return true;
 			},
@@ -112,36 +116,60 @@ export default class SyncGatePlugin extends Plugin {
 		this.reader = new SyncStatusReader(this.app, (event, entry) => this.onSyncEvent(event, entry));
 		this.diagnostics.record(Date.now(), 'start', { platform: platformName(), isMobile: Platform.isMobile });
 		this.pollSync();
-		this.apply({ type: 'lock-trigger', reason: 'startup', at: Date.now() });
+		this.apply({ type: 'lock-trigger', reason: 'startup', at: performance.now() });
 		this.registerInterval(window.setInterval(() => this.pollSync(), POLL_INTERVAL_MS));
 		this.registerDomEvent(document, 'visibilitychange', () => {
-			if (!document.hidden) {
+			if (document.hidden) {
+				this.resumeDetector.hidden();
+			} else {
+				this.resumeDetector.visible();
 				this.onResume('visible');
 			}
 		});
 		if (Platform.isMobile) {
-			this.registerDomEvent(window, 'focus', () => this.onResume('focus'));
+			this.registerDomEvent(window, 'blur', () => this.resumeDetector.blur(performance.now()));
+			this.registerDomEvent(window, 'focus', () => {
+				if (this.resumeDetector.focus(performance.now())) {
+					this.onResume('focus');
+				}
+			});
 		}
 		this.registerDomEvent(window, 'online', () => this.pollSync());
 		this.registerDomEvent(window, 'offline', () => this.pollSync());
+		this.registerEvent(this.app.vault.on('rename', (file, oldPath) => this.onRename(oldPath, file.path)));
 	}
 
 	private onResume(source: string): void {
 		if (this.settings.lockOnResumeMobileOnly && !Platform.isMobile) {
 			return;
 		}
-		const at = Date.now();
+		const at = performance.now();
 		if (at - this.lastResumeAt < RESUME_DEBOUNCE_MS) {
 			return;
 		}
 		this.lastResumeAt = at;
-		this.diagnostics.record(at, 'resume', { source });
+		this.diagnostics.record(Date.now(), 'resume', { source });
 		this.pollSync();
 		this.apply({ type: 'lock-trigger', reason: 'resume', at });
 	}
 
+	/**
+	 * Keeps the protected note and an active note lock on a note that moved.
+	 */
+	private onRename(from: string, to: string): void {
+		this.apply({ type: 'rename', from, to });
+		const notePath = renamedPath(this.settings.notePath, from, to);
+		if (this.settings.notePath === '' || notePath === undefined) {
+			return;
+		}
+		this.settings.notePath = notePath;
+		this.saveSettings().catch((error: unknown) => {
+			new Notice(`Sync Gate: could not save the new path of the protected note. ${errorText(error)}`);
+		});
+	}
+
 	private onSyncEvent(event: SyncEventName, entry: unknown): void {
-		const at = Date.now();
+		const at = performance.now();
 		if (event === 'new-log' && entry !== undefined) {
 			this.apply({ type: 'log-entry', entry, openPaths: this.openNotePaths(), at });
 		}
@@ -160,7 +188,7 @@ export default class SyncGatePlugin extends Plugin {
 	}
 
 	private pollSync(): void {
-		const at = Date.now();
+		const at = performance.now();
 		this.applySnapshot(at);
 		this.apply({ type: 'tick', at });
 	}
@@ -173,14 +201,15 @@ export default class SyncGatePlugin extends Plugin {
 	}
 
 	private apply(event: GateEvent): void {
-		const at = 'at' in event ? event.at : Date.now();
-		this.recordInput(event, at);
+		// The gate gets monotonic times. The diagnostic log gets wall-clock times.
+		const recordedAt = Date.now();
+		this.recordInput(event, recordedAt);
 		const state = this.gate.handle(event);
 		if (sameState(state, this.state)) {
 			return;
 		}
 		this.state = state;
-		this.diagnostics.record(at, 'decision', { ...describeState(state), after: event.type });
+		this.diagnostics.record(recordedAt, 'decision', { ...describeState(state), after: event.type });
 		if (this.settings.debug) {
 			console.debug('[sync-gate]', event.type, state);
 		}
@@ -217,6 +246,7 @@ export default class SyncGatePlugin extends Plugin {
 			case 'edit-anyway':
 				this.diagnostics.record(at, 'edit-anyway');
 				break;
+			case 'rename':
 			case 'tick':
 				break;
 		}
@@ -245,6 +275,10 @@ export default class SyncGatePlugin extends Plugin {
 		await this.app.vault.create(path, content);
 		new Notice(`Sync Gate: saved the diagnostic log to ${path}`);
 	}
+}
+
+function errorText(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
 }
 
 function sameState(a: GateState, b: GateState): boolean {

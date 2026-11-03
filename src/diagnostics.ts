@@ -45,10 +45,8 @@ export interface DiagnosticHeader {
 	apiVersion: string;
 }
 
-/**
- * Default number of records that the log keeps.
- */
-export const DIAGNOSTIC_LOG_SIZE = 500;
+// Default number of records that the log keeps.
+const DIAGNOSTIC_LOG_SIZE = 500;
 
 /**
  * Ring buffer of the most recent diagnostic records.
@@ -71,13 +69,6 @@ export class DiagnosticLog {
 			this.records.shift();
 			this.dropped += 1;
 		}
-	}
-
-	/**
-	 * Records currently in the log, oldest first.
-	 */
-	get entries(): readonly DiagnosticRecord[] {
-		return this.records;
 	}
 
 	/**
@@ -128,13 +119,14 @@ export function describeShape(target: unknown): Record<string, string> {
 }
 
 /**
- * Builds a file name for a saved log, for example `sync-gate-ios-20250101-093000.md`.
+ * Builds a file name for a saved log, for example `sync-gate-ios-20250101-093000-042.md`.
+ * The name includes milliseconds, so two saves in the same second get different names.
  */
 export function diagnosticFileName(platform: string, savedAt: Date): string {
-	const pad = (value: number): string => String(value).padStart(2, '0');
+	const pad = (value: number, length = 2): string => String(value).padStart(length, '0');
 	const date = `${savedAt.getFullYear()}${pad(savedAt.getMonth() + 1)}${pad(savedAt.getDate())}`;
 	const time = `${pad(savedAt.getHours())}${pad(savedAt.getMinutes())}${pad(savedAt.getSeconds())}`;
-	return `sync-gate-${platform}-${date}-${time}.md`;
+	return `sync-gate-${platform}-${date}-${time}-${pad(savedAt.getMilliseconds(), 3)}.md`;
 }
 
 function describeMember(target: object, key: string): string {
