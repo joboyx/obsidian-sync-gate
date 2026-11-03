@@ -10,8 +10,12 @@
 import { App, MarkdownView, setIcon, setTooltip, type WorkspaceLeaf } from 'obsidian';
 import { isNoteCovered, isNoteLocked, type GateCoverage, type GateState } from './gate';
 import { bannerView, EDIT_ANYWAY_LABEL, indicatorView, overlayView, type BannerView, type IndicatorView, type OverlayView } from './gate-view';
+import { ModeMemory } from './mode-memory';
 
 const READING_MODE = 'preview';
+
+// Marks the elements that Sync Gate made inert, so an unlock does not change other inert elements.
+const INERT_MARKER = 'data-sync-gate-inert';
 
 /**
  * Callbacks and options for {@link EditorLock}.
@@ -40,7 +44,7 @@ export interface EditorLockOptions {
  */
 export class EditorLock {
 	private state: GateState | undefined;
-	private readonly savedModes = new Map<WorkspaceLeaf, unknown>();
+	private readonly modes = new ModeMemory<WorkspaceLeaf>();
 	private readonly pendingModes = new Set<WorkspaceLeaf>();
 	private readonly hosts = new Set<HTMLElement>();
 	private readonly rendered = new WeakMap<HTMLElement, string>();
@@ -103,7 +107,7 @@ export class EditorLock {
 	destroy(): void {
 		this.state = undefined;
 		this.pendingModes.clear();
-		for (const leaf of [...this.savedModes.keys()]) {
+		for (const leaf of this.modes.keys()) {
 			this.restoreMode(leaf);
 		}
 		for (const host of this.hosts) {
@@ -118,24 +122,22 @@ export class EditorLock {
 	}
 
 	private showReadingView(leaf: WorkspaceLeaf): void {
-		const viewState = leaf.getViewState();
-		const mode = viewState.state?.mode;
-		if (!this.savedModes.has(leaf)) {
-			this.savedModes.set(leaf, mode);
-		}
+		const mode = currentMode(leaf);
+		this.modes.remember(leaf, mode);
 		if (mode !== READING_MODE) {
+			// While another mode change runs, setMode() skips. Its completion applies the lock again.
 			this.setMode(leaf, READING_MODE);
 		}
 	}
 
 	private restoreMode(leaf: WorkspaceLeaf): void {
-		if (!this.savedModes.has(leaf) || this.pendingModes.has(leaf)) {
-			// A mode change is still running. Its completion calls refresh(), which restores the mode.
+		if (!this.modes.has(leaf) || this.pendingModes.has(leaf)) {
+			// A mode change is still running. Its completion restores the mode.
 			return;
 		}
-		const saved = this.savedModes.get(leaf);
-		this.savedModes.delete(leaf);
-		if (typeof saved === 'string' && leaf.getViewState().state?.mode !== saved) {
+		const saved = this.modes.restoreTarget(leaf);
+		if (saved !== undefined && currentMode(leaf) !== saved) {
+			this.modes.restoreStarted(leaf, saved);
 			this.setMode(leaf, saved);
 		}
 	}
@@ -148,9 +150,12 @@ export class EditorLock {
 		this.pendingModes.add(leaf);
 		void leaf.setViewState({ ...viewState, state: { ...viewState.state, mode } }).finally(() => {
 			this.pendingModes.delete(leaf);
-			// The gate can open while the switch to Reading view runs. restoreMode() skipped
-			// the leaf then, so restore it now.
-			if (this.savedModes.has(leaf) && !this.isLeafLocked(leaf)) {
+			this.modes.changeFinished(leaf);
+			// The gate can lock or open while the mode change runs, and the change above
+			// skipped the leaf then. Apply the current gate state to the leaf now.
+			if (this.isLeafLocked(leaf)) {
+				this.showReadingView(leaf);
+			} else {
 				this.restoreMode(leaf);
 			}
 		});
@@ -166,6 +171,7 @@ export class EditorLock {
 
 	private renderOverlay(host: HTMLElement, view: OverlayView | undefined): void {
 		const existing = childWithClass(host, 'sync-gate-overlay');
+		setContentInert(host, view !== undefined);
 		if (!view) {
 			existing?.remove();
 			this.updateHost(host);
@@ -250,9 +256,9 @@ export class EditorLock {
 	}
 
 	private forgetClosed(leaves: Set<WorkspaceLeaf>, views: Set<MarkdownView>): void {
-		for (const leaf of this.savedModes.keys()) {
+		for (const leaf of this.modes.keys()) {
 			if (!leaves.has(leaf)) {
-				this.savedModes.delete(leaf);
+				this.modes.forget(leaf);
 			}
 		}
 		for (const [view, action] of this.actions) {
@@ -308,6 +314,32 @@ export class StatusBarIndicator {
 		setTooltip(this.el, indicator.tooltip, { placement: 'top' });
 		this.el.setAttribute('aria-label', indicator.tooltip);
 	}
+}
+
+/**
+ * Makes the note content behind the lock card inert, or makes it usable again.
+ * The card blocks pointer input only. `inert` also blocks keyboard focus, for example
+ * Tab to a property or a link. The card and the banner stay usable.
+ * Only elements that this function made inert are changed back.
+ */
+function setContentInert(host: HTMLElement, inert: boolean): void {
+	for (const child of Array.from(host.children)) {
+		if (child.classList.contains('sync-gate-overlay') || child.classList.contains('sync-gate-banner')) {
+			continue;
+		}
+		if (inert && !child.hasAttribute('inert')) {
+			child.setAttribute('inert', '');
+			child.setAttribute(INERT_MARKER, '');
+		} else if (!inert && child.hasAttribute(INERT_MARKER)) {
+			child.removeAttribute('inert');
+			child.removeAttribute(INERT_MARKER);
+		}
+	}
+}
+
+function currentMode(leaf: WorkspaceLeaf): string | undefined {
+	const mode: unknown = leaf.getViewState().state?.mode;
+	return typeof mode === 'string' ? mode : undefined;
 }
 
 function childWithClass(host: HTMLElement, cls: string): HTMLElement | undefined {
