@@ -1,0 +1,10 @@
+# Normalize line endings to LF in the repository and in every checkout.
+* text=auto eol=lf
+
+# Binary files: no line-ending conversion, no text diff.
+*.png binary
+*.jpg binary
+*.gif binary
+
+# Generated files: collapsed in diffs, left out of language stats.
+package-lock.json linguist-generated=true
